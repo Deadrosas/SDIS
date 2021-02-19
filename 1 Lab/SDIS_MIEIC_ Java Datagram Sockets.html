@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0060)https://web.fe.up.pt/~pfs/aulas/sd2019/labs/l01/udp_l01.html -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	
+		<style type="text/css">
+		body { 
+			font-family: droid, sans-serif; 
+			font-size:12pt; 
+			font-style:normal;
+			line-height: 150%; 
+		}
+		code {
+			font-family: courier, monospace;; 
+			font-size:14pt; 
+			font-weight: bolder;
+			line-height: 150%;		
+		}
+	</style>
+	<title>SDIS/MIEIC: Java Datagram Sockets</title>
+</head>
+<body data-new-gr-c-s-check-loaded="14.996.0" data-gr-ext-installed="">
+<h1>Distributed Systems <p>
+Programming with Unicast Datagram Sockets</p></h1>
+<hr>
+<h2>1. Introduction</h2>
+<p>The main goal of this lab is to reinforce your understanding of the fundamentals for the development of distributed applications using UDP.</p>
+
+<p>You will also gain familiarity with sockets' API, which is adopted by almost all operating systems on the market.</p>
+
+<h3>1.1 Method</h3>
+
+<p>You can discuss possible solutions with your fellow students. However, the final solution should be your own.</p>
+
+<h3>1.2 Follow the program specification</h3>
+
+<p>This document is a specification of the application to be developed. As a future engineer, you'll be required to read, understand, and follow specifications, typically elaborated by other people: a solution to a wrong problem is not correct. Get used to follow the specifications of the problems you have to solve. (However, always maintaining a critical attitude to find any inconsistencies or errors.)</p>
+
+<h2>2. The Application</h2>
+
+<p>In this assignment you will write a client-server application to resolve DNS-like names, i.e. to retrieve the IP address corresponding to a DNS name.</p>
+
+<p>Thus, the server must support the following operations:</p>
+<dl>
+<dt>register</dt><dd>to bind a DNS name to an IP address. It returns -1, if the name has already been registered, and the number of bindings in the service, otherwise.</dd>
+<dt>lookup</dt><dd>to retrieve the IP address previously bound to a DNS name. It returns the IP address in the dotted decimal format or the <tt>NOT_FOUND</tt> string, if the name was not previously registered.</dd></dl>
+
+<p><b>IMP.-</b> Your service is not supposed to use DNS to respond to a <tt>lookup</tt> request. Instead, it should keep a "table" with pairs <tt>(DNS name, IP address)</tt>, which is looked up when processing the <tt>lookup</tt> request. The processing of a <tt>register</tt> request should add a <tt>(DNS name, IP address)</tt> pair to that "table".</p>
+
+
+<h2>3. Client-server application-level protocol</h2>
+
+<p>In a client-server application, the client sends requests to the server. The latter processes the requests, returning the results, if any, to the clients.
+</p>
+
+<p>
+In an application based on sockets both the requests and the results are sent in messages. The message sent by the client should include the operation and its parameters, if any. It is the client's responsibility to build the request message. The server will have to extract the operation and the parameters from each message received from a client, and then invoke the function performing the requested operation. Furthermore, if the request elicits a reply message, the server will have to build it , possibly including the results of processing the request. The client in turn will have to interpret the reply message, if any.</p>
+
+<p>The format and meaning of messages exchanged between the client and server, and the rules that govern the exchange of these messages makes the communication protocol between the client and server.</p>
+
+<p>In this work, the server must be able to reply to two distinct requests:</p>
+<ul>
+    <li>registration of plate number and its owner;</li>
+    <li>query of the owner of given plate number</li>
+</ul>
+
+<p>A possible format for the messages the client will send to the server is:
+</p><pre>‘‘REGISTER &lt;DNS name&gt; &lt;IP address&gt;’’
+     
+‘‘LOOKUP &lt;DNS name&gt;
+</pre>
+where
+<p></p>
+<dl>
+<dt>&lt;DNS name&gt;</dt><dd>Is a DNS-like name, e.g. <tt>www.fe.up.pt</tt></dd>
+<dt>&lt;IP address&gt;</dt><dd>Is an IPv4 address in dotted decimal format, e.g. <tt>10.227.240.205</tt></dd>
+</dl>
+<p></p>
+
+<p>A possible format for the reply messages by the server to these requests is, respectively:
+</p><pre>&lt;result&gt;
+&lt;DNS name&gt; &lt;IP address&gt;
+</pre>
+where
+<dl>
+<dt>&lt;result&gt;</dt>
+<dd>is the return value (an integer) of the register command: return -1 if the command fails; otherwise, returns the number of DNS names previously registered in the service.</dd>
+</dl>
+<p></p>
+     
+<p><b>Note:</b> To simplify the communication, each message, request or reply, should be a single string. </p>
+
+<p>
+<b>Question (discuss in class):</b> Note that all messages are plain strings to make the protocol easily readable (e.g, to simplify the debugging phase, if needed). What are the advantages of using plain strings? And what are the drawbacks? Do you think that most application layer protocols, e.g. FTP and HTTP-based protocols use strings? What about lower-level protocols?</p>
+
+<p>The application protocol for communication between the client and server can be identical to that used in the <a href="https://web.fe.up.pt/~pfs/aulas/sd2016/labs/lab3.html">TCP version of the service</a>.</p>
+
+<h2>4. Unicast Communication with Java's <tt>DatagramSocket</tt></h2>
+
+<p>In this lab you shall implement two classes, <code>Client</code> and <code>Server</code>, for the client and server, respectively, using the <code>java.net.DatagramSocket</code> class.</p>
+
+<h3>4.1 Server</h3>
+<p>The server program shall be invoked as follows:</p>
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><kbd>java Server &lt;port number&gt; </kbd>
+</div>	
+	<p>where
+    </p><dl>
+	<dt><kbd>&lt;port number&gt;</kbd></dt>
+	<dd>is the port number the server shall use to provide the service</dd>    
+    </dl>
+    <p></p>
+<p> The server must loop forever waiting for client requests, processing and replying to them.</p>
+<p>To trace the operation of the server, it should print a messages on its terminal each time it processes a client request. The format of this message shall be:</p>
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><kbd>Server: &lt;oper&gt; &lt;opnd&gt;*</kbd>
+</div>	
+	<p>where
+ 	</p><dt><kbd>&lt;oper&gt;</kbd></dt>
+	<dd>is operation received on the request</dd>
+	<dt><kbd>&lt;opnd&gt;*</kbd></dt>
+	<dd>is the list of operands receive in the request</dd>
+    
+
+
+<h3>4.2 Client</h3>
+<p>The client program shall be invoked as follows:</p>
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><kbd>java Client &lt;host&gt; &lt;port&gt; &lt;oper&gt; &lt;opnd&gt;*</kbd>
+</div>	
+	<p>where
+    </p><dl>
+   	<dt><kbd>&lt;host&gt;</kbd></dt>
+	<dd>is the DNS name (or the IP address, in the dotted decimal format) where the server is running</dd> 
+	<dt><kbd>&lt;port&gt;</kbd></dt>
+	<dd>is the port number where the server is providing service</dd> 
+ 	<dt><kbd>&lt;oper&gt;</kbd></dt>
+	<dd>is the operation to request from the server, either <tt>"register"</tt> or <tt>"lookup"</tt></dd>
+	<dt><kbd>&lt;opnd&gt;*</kbd></dt>
+	<dd>is the list of operands of that operation<br>
+	<tt>&lt;DNS name&gt; &lt;IP address&gt;</tt> for <tt>register</tt><br>
+	<tt>&lt;DNS name&gt;</tt> for <tt>lookup</tt></dd>
+    </dl>
+    <p></p>
+<p>After submitting a request, the client waits to receive a reply to the request, prints the reply, and then terminates.</p>
+<p>The client should print a messages on its terminal to check the operation of the service. The format of this message shall be:</p>
+<div align="left" style="background-color: #E5E5E5; white-space: pre; "><kbd>Client: &lt;oper&gt; &lt;opnd&gt;* : &lt;result&gt;</kbd>
+</div>	
+	<p>where
+ 	</p><dt><kbd>&lt;oper&gt;</kbd></dt>
+	<dd>is operation requested</dd>
+	<dt><kbd>&lt;opnd&gt;*</kbd></dt>
+	<dd>is the list of operands of the request</dd>
+ 	<dt><kbd>&lt;result&gt;</kbd></dt>
+	<dd>is result returned by the server or <code>"ERROR"</code>, if an error occurs</dd>	
+    
+<p>
+
+</p><p><b>Food for thought:</b> How can you prevent the client from hanging indefinitely in case of failure of the server or of lost messages? Is this a problem for the server?</p>
+
+<h2 class="section">5  Documentation</h2>
+<ul>
+<li><a href="https://docs.oracle.com/javase/tutorial/networking/datagrams/index.html">Sun's tutorial about the Java API for UDP</a></li>
+<li><a href="https://web.fe.up.pt/~pfs/aulas/sd2019/labs/l01/udp_java.pdf">Java API for UDP Communication</a></li>
+<li><a href="https://tools.ietf.org/html/rfc768">RFC768: User Datagram Protocol</a></li>
+</ul>
+
+
+
+</body></html>
