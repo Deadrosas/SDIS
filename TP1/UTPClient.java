@@ -6,7 +6,7 @@ public class UTPClient{
         DatagramSocket clientSocket = new DatagramSocket(); 
         InetAddress address = InetAddress.getByName(args[0]);
 
-        String ex = "Hello, World!";
+        String ex = args[1] + ' ' + args[2];
         byte[] buf = ex.getBytes();
 
         DatagramPacket packet = new DatagramPacket(buf,buf.length, address, 4445); 
